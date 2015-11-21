@@ -396,4 +396,35 @@ func TestIPNSHostnameBacklinks(t *testing.T) {
 	if !strings.Contains(s, "<a href=\"/prefix/file.txt\">") {
 		t.Fatalf("expected file in directory listing")
 	}
+
+	// make request to directory listing with illegal prefix
+	req, err = http.NewRequest("GET", ts.URL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	req.Host = "example.net"
+	req.Header.Set("X-Ipfs-Gateway-Prefix", "http://evil.com")
+
+	res, err = doWithoutRedirect(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// expect correct backlinks without illegal prefix
+	body, err = ioutil.ReadAll(res.Body)
+	if err != nil {
+		t.Fatalf("error reading response: %s", err)
+	}
+	s = string(body)
+	t.Logf("body: %s\n", string(body))
+
+	if !strings.Contains(s, "Index of /") {
+		t.Fatalf("expected a path in directory listing")
+	}
+	if !strings.Contains(s, "<a href=\"/\">") {
+		t.Fatalf("expected backlink in directory listing")
+	}
+	if !strings.Contains(s, "<a href=\"/file.txt\">") {
+		t.Fatalf("expected file in directory listing")
+	}
 }

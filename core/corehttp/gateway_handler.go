@@ -97,8 +97,11 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	// It will be prepended to links in directory listings and the index.html redirect.
 	prefix := ""
 	if prefixHdr := r.Header["X-Ipfs-Gateway-Prefix"]; len(prefixHdr) > 0 {
-		log.Debugf("X-Ipfs-Gateway-Prefix: %s", prefixHdr[0])
-		prefix = prefixHdr[0]
+		prfx := prefixHdr[0]
+		if strings.HasPrefix(prfx, "/") {
+			log.Debugf("X-Ipfs-Gateway-Prefix: %s", prfx)
+			prefix = prfx
+		}
 	}
 
 	// IPNSHostnameOption might have constructed an IPNS path using the Host header.
