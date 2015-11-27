@@ -253,10 +253,18 @@ func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.ID, pmes *pb.M
 	lm["peer"] = func() interface{} { return p.Pretty() }
 
 	defer log.EventBegin(ctx, "handleAddProvider", lm).Done()
-	key := key.Key(pmes.GetKey())
-	lm["key"] = func() interface{} { return key.Pretty() }
+	var keys []key.Key
+	if pmes.Key != nil {
+		k := key.Key(pmes.GetKey())
+		lm["key"] = func() interface{} { return k.Pretty() }
+		keys = []key.Key{k}
+	} else {
+		for _, sk := range pmes.GetKeys() {
+			keys = append(keys, key.Key(sk))
+		}
+	}
 
-	log.Debugf("%s adding %s as a provider for '%s'\n", dht.self, p, key)
+	log.Debugf("%s adding %s as a provider for '%s'", dht.self, p, keys)
 
 	// add provider should use the address given in the message
 	pinfos := pb.PBPeersToPeerInfos(pmes.GetProviderPeers())
@@ -273,12 +281,14 @@ func (dht *IpfsDHT) handleAddProvider(ctx context.Context, p peer.ID, pmes *pb.M
 			continue
 		}
 
-		log.Infof("received provider %s for %s (addrs: %s)", p, key, pi.Addrs)
+		log.Infof("received provider %s for %s (addrs: %s)", p, keys, pi.Addrs)
 		if pi.ID != dht.self { // dont add own addrs.
 			// add the received addresses to our peerstore.
 			dht.peerstore.AddAddrs(pi.ID, pi.Addrs, peer.ProviderAddrTTL)
 		}
-		dht.providers.AddProvider(ctx, key, p)
+		for _, key := range keys {
+			dht.providers.AddProvider(ctx, key, p)
+		}
 	}
 
 	return nil, nil

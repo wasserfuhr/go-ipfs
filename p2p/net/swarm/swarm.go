@@ -74,7 +74,7 @@ type Swarm struct {
 
 	proc goprocess.Process
 	ctx  context.Context
-	bwc  metrics.Reporter
+	Bwc  metrics.Reporter
 }
 
 // NewSwarm constructs a Swarm, with a Chan.
@@ -98,7 +98,7 @@ func NewSwarm(ctx context.Context, listenAddrs []ma.Multiaddr,
 		dialT:       DialTimeout,
 		notifs:      make(map[inet.Notifiee]ps.Notifiee),
 		transports:  []transport.Transport{transport.NewTCPTransport()},
-		bwc:         bwc,
+		Bwc:         bwc,
 		fdRateLimit: make(chan struct{}, concurrentFdDials),
 		Filters:     filter.NewFilters(),
 		dialer:      conn.NewDialer(local, peers.PrivKey(local), wrap),

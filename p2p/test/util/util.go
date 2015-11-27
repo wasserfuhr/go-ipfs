@@ -35,7 +35,7 @@ func DivulgeAddresses(a, b inet.Network) {
 
 func GenHostSwarm(t *testing.T, ctx context.Context) *bhost.BasicHost {
 	n := GenSwarmNetwork(t, ctx)
-	return bhost.New(n)
+	return bhost.New(n, n.Bwc)
 }
 
 var RandPeerID = tu.RandPeerID

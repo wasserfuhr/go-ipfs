@@ -14,11 +14,13 @@ It has these top-level messages:
 */
 package dht_pb
 
-import proto "github.com/ipfs/go-ipfs/Godeps/_workspace/src/github.com/gogo/protobuf/proto"
+import proto "github.com/gogo/protobuf/proto"
+import fmt "fmt"
 import math "math"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
+var _ = fmt.Errorf
 var _ = math.Inf
 
 type Message_MessageType int32
@@ -126,8 +128,10 @@ type Message struct {
 	CloserPeers []*Message_Peer `protobuf:"bytes,8,rep,name=closerPeers" json:"closerPeers,omitempty"`
 	// Used to return Providers
 	// GET_VALUE, ADD_PROVIDER, GET_PROVIDERS
-	ProviderPeers    []*Message_Peer `protobuf:"bytes,9,rep,name=providerPeers" json:"providerPeers,omitempty"`
-	XXX_unrecognized []byte          `json:"-"`
+	ProviderPeers []*Message_Peer `protobuf:"bytes,9,rep,name=providerPeers" json:"providerPeers,omitempty"`
+	// Used to query for multiple targets in one request
+	Keys             []string `protobuf:"bytes,11,rep,name=keys" json:"keys,omitempty"`
+	XXX_unrecognized []byte   `json:"-"`
 }
 
 func (m *Message) Reset()         { *m = Message{} }
@@ -172,6 +176,13 @@ func (m *Message) GetCloserPeers() []*Message_Peer {
 func (m *Message) GetProviderPeers() []*Message_Peer {
 	if m != nil {
 		return m.ProviderPeers
+	}
+	return nil
+}
+
+func (m *Message) GetKeys() []string {
+	if m != nil {
+		return m.Keys
 	}
 	return nil
 }

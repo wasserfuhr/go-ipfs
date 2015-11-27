@@ -86,7 +86,7 @@ func (s *Swarm) addListener(tptlist transport.Listener) error {
 
 	if cw, ok := list.(conn.ListenerConnWrapper); ok {
 		cw.SetConnWrapper(func(c transport.Conn) transport.Conn {
-			return mconn.WrapConn(s.bwc, c)
+			return mconn.WrapConn(s.Bwc, c)
 		})
 	}
 
