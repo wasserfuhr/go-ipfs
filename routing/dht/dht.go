@@ -160,34 +160,6 @@ func (dht *IpfsDHT) putProviders(ctx context.Context, p peer.ID, keys []key.Key)
 	return nil
 }
 
-// putProvider sends a message to peer 'p' saying that the local node
-// can provide the value of 'key'
-func (dht *IpfsDHT) putProvider(ctx context.Context, p peer.ID, skey string) error {
-
-	// add self as the provider
-	pi := peer.PeerInfo{
-		ID:    dht.self,
-		Addrs: dht.host.Addrs(),
-	}
-
-	// // only share WAN-friendly addresses ??
-	// pi.Addrs = addrutil.WANShareableAddrs(pi.Addrs)
-	if len(pi.Addrs) < 1 {
-		// log.Infof("%s putProvider: %s for %s error: no wan-friendly addresses", dht.self, p, key.Key(key), pi.Addrs)
-		return fmt.Errorf("no known addresses for self. cannot put provider.")
-	}
-
-	pmes := pb.NewMessage(pb.Message_ADD_PROVIDER, skey, 0)
-	pmes.ProviderPeers = pb.RawPeerInfosToPBPeers([]peer.PeerInfo{pi})
-	err := dht.sendMessage(ctx, p, pmes)
-	if err != nil {
-		return err
-	}
-
-	log.Debugf("%s putProvider: %s for %s (%s)", dht.self, p, key.Key(skey), pi.Addrs)
-	return nil
-}
-
 // getValueOrPeers queries a particular peer p for the value for
 // key. It returns either the value or a list of closer peers.
 // NOTE: it will update the dht's peerstore with any new addresses
