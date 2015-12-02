@@ -314,50 +314,6 @@ func (i *gatewayHandler) postHandler(ctx context.Context, w http.ResponseWriter,
 	}
 
 	var newkey key.Key
-	rnode, err := core.Resolve(ctx, i.node, rootPath)
-	switch ev := err.(type) {
-	case path.ErrNoLink:
-		// ev.Node < node where resolve failed
-		// ev.Name < new link
-		// but we need to patch from the root
-		rnode, err := i.node.DAG.Get(ctx, key.B58KeyDecode(rsegs[1]))
-		if err != nil {
-			webError(w, "postHandler: Could not create DAG from request", err, http.StatusInternalServerError)
-			return
-		}
-
-		e := dagutils.NewDagEditor(i.node.DAG, rnode)
-		err = e.InsertNodeAtPath(ctx, newPath, newnode, uio.NewEmptyDirectory)
-		if err != nil {
-			webError(w, "postHandler: InsertNodeAtPath failed", err, http.StatusInternalServerError)
-			return
-		}
-
-		newkey, err = e.GetNode().Key()
-		if err != nil {
-			webError(w, "postHandler: could not get key of edited node", err, http.StatusInternalServerError)
-			return
-		}
-
-	case nil:
-		// object set-data case
-		rnode.Data = newnode.Data
-
-		newkey, err = i.node.DAG.Add(rnode)
-		if err != nil {
-			nnk, _ := newnode.Key()
-			rk, _ := rnode.Key()
-			webError(w, fmt.Sprintf("postHandler: Could not add newnode(%q) to root(%q)", nnk.B58String(), rk.B58String()), err, http.StatusInternalServerError)
-			return
-		}
-	default:
-		if !newResource {
-			log.Warningf("postHandler: unhandled resolve error %T", ev)
-			webError(w, "could not resolve root DAG", ev, http.StatusInternalServerError)
-			return
-		}
-	}
-
 	if newResource {
 		nk, err := newnode.Key()
 		if err != nil {
@@ -366,6 +322,47 @@ func (i *gatewayHandler) postHandler(ctx context.Context, w http.ResponseWriter,
 		}
 		newkey = nk
 		w.WriteHeader(http.StatusCreated)
+	} else {
+		rnode, err := core.Resolve(ctx, i.node, rootPath)
+		switch ev := err.(type) {
+
+		case path.ErrNoLink:
+			// ev.Node < node where resolve failed
+			// ev.Name < new link
+			// but we need to patch from the root
+			rnode, err := i.node.DAG.Get(ctx, key.B58KeyDecode(rsegs[1]))
+			if err != nil {
+				webError(w, "postHandler: Could not create DAG from request", err, http.StatusInternalServerError)
+				return
+			}
+			e := dagutils.NewDagEditor(i.node.DAG, rnode)
+			err = e.InsertNodeAtPath(ctx, newPath, newnode, uio.NewEmptyDirectory)
+			if err != nil {
+				webError(w, "postHandler: InsertNodeAtPath failed", err, http.StatusInternalServerError)
+				return
+			}
+			newkey, err = e.GetNode().Key()
+			if err != nil {
+				webError(w, "postHandler: could not get key of edited node", err, http.StatusInternalServerError)
+				return
+			}
+
+		case nil:
+			// object set-data case
+			rnode.Data = newnode.Data
+			newkey, err = i.node.DAG.Add(rnode)
+			if err != nil {
+				nnk, _ := newnode.Key()
+				rk, _ := rnode.Key()
+				webError(w, fmt.Sprintf("postHandler: Could not add newnode(%q) to root(%q)", nnk.B58String(), rk.B58String()), err, http.StatusInternalServerError)
+				return
+			}
+
+		default:
+			log.Warningf("postHandler: unhandled resolve error %T", ev)
+			webError(w, "could not resolve root DAG", ev, http.StatusInternalServerError)
+			return
+		}
 	}
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
@@ -413,6 +410,10 @@ func (i *gatewayHandler) deleteHandler(ctx context.Context, w http.ResponseWrite
 		webError(w, "deleteHandler: dag editor failed to rmLink()", err, http.StatusInternalServerError)
 		return
 	}
+
+	// get new path
+	rsegs = rsegs[:len(rsegs)-1]
+	newPath = gopath.Join(rsegs[2:]...)
 
 	newkey, err := e.GetNode().Key()
 	if err != nil {

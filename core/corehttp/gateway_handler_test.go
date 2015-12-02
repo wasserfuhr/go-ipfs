@@ -78,7 +78,7 @@ func TestGateway_Meaningful(t *testing.T) {
 		{"POST", "/ipfs", http.StatusCreated, []byte("Hello World"), "/ipfs/QmUXTtySmd7LD4p6RG6rZW6RuUuPZXTtNMmRQ6DSQo3aMw"},
 
 		// creates or overwrites newFile on key
-		{"POST", "/ipfs/" + ts.key.B58String() + "/newFile", http.StatusCreated, []byte("Hello World"), "/ipfs/QmSN6DYGcb98NqAxN3FW8nJdcJquGFLu64fPVcfbFVdHJc"},
+		{"POST", "/ipfs/" + ts.key.B58String() + "/newFile", http.StatusCreated, []byte("Hello World"), "/ipfs/QmSN6DYGcb98NqAxN3FW8nJdcJquGFLu64fPVcfbFVdHJc/newFile"},
 
 		// removes the link to about from key
 		{"DELETE", "/ipfs/" + ts.key.B58String() + "/about", http.StatusCreated, []byte{}, "/ipfs/QmNjJ3naRhHCn14E895R1xtGmDgKQb8vnVvQar6RrnraC1"},
