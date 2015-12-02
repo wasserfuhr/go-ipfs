@@ -99,6 +99,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 	// If the gateway is behind a reverse proxy and mounted at a sub-path,
 	// the prefix header can be set to signal this sub-path.
 	// It will be prepended to links in directory listings and the index.html redirect.
+	// TODO(cryptix): can we move this into ServeHTTP, so we can do it once for all methods?
 	prefix := ""
 	if prefixHdr := r.Header["X-Ipfs-Gateway-Prefix"]; len(prefixHdr) > 0 {
 		log.Debugf("X-Ipfs-Gateway-Prefix: %s", prefixHdr[0])
@@ -269,10 +270,24 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (i *gatewayHandler) postHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
-	rootPath, err := path.ParsePath(r.URL.Path)
-	if err != nil {
-		webError(w, "postHandler: ipfs path not valid", err, http.StatusBadRequest)
-		return
+	// TODO(cryptix): can we move this into ServeHTTP, so we can do it once for all methods?
+	prefix := ""
+	if prefixHdr := r.Header["X-Ipfs-Gateway-Prefix"]; len(prefixHdr) > 0 {
+		log.Debugf("X-Ipfs-Gateway-Prefix: %s", prefixHdr[0])
+		prefix = prefixHdr[0]
+	}
+
+	var newResource bool
+	var rootPath path.Path
+	if r.URL.Path == prefix+"/ipfs" {
+		newResource = true
+	} else {
+		rp, err := path.ParsePath(r.URL.Path)
+		if err != nil {
+			webError(w, "postHandler: ipfs path not valid", err, http.StatusBadRequest)
+			return
+		}
+		rootPath = rp
 	}
 
 	rsegs := rootPath.Segments()
@@ -336,9 +351,21 @@ func (i *gatewayHandler) postHandler(ctx context.Context, w http.ResponseWriter,
 			return
 		}
 	default:
-		log.Warningf("postHandler: unhandled resolve error %T", ev)
-		webError(w, "could not resolve root DAG", ev, http.StatusInternalServerError)
-		return
+		if !newResource {
+			log.Warningf("postHandler: unhandled resolve error %T", ev)
+			webError(w, "could not resolve root DAG", ev, http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if newResource {
+		nk, err := newnode.Key()
+		if err != nil {
+			webError(w, "postHandler: could not get key of newResource node", err, http.StatusInternalServerError)
+			return
+		}
+		newkey = nk
+		w.WriteHeader(http.StatusCreated)
 	}
 
 	i.addUserHeaders(w) // ok, _now_ write user's headers.
