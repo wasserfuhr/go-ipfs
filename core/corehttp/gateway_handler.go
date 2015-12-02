@@ -188,9 +188,9 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 			foundIndex = true
 
 			if urlPath[len(urlPath)-1] != '/' {
-				// See comment above where originalURLPath is declared.
-				http.Redirect(w, r, originalURLPath+"/", 302)
-				log.Debugf("redirect to %s", originalURLPath+"/")
+				// See comment above where originalUrlPath is declared.
+				http.Redirect(w, r, originalUrlPath+"/", 302)
+				log.Debugf("redirect to %s", originalUrlPath+"/")
 				return
 			}
 
@@ -214,8 +214,8 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 			break
 		}
 
-		// See comment above where originalURLPath is declared.
-		di := directoryItem{humanize.Bytes(link.Size), link.Name, gopath.Join(originalURLPath, link.Name)}
+		// See comment above where originalUrlPath is declared.
+		di := directoryItem{humanize.Bytes(link.Size), link.Name, gopath.Join(originalUrlPath, link.Name)}
 		dirListing = append(dirListing, di)
 	}
 
@@ -253,10 +253,10 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 				}
 			}
 
-			// See comment above where originalURLPath is declared.
+			// See comment above where originalUrlPath is declared.
 			tplData := listingTemplateData{
 				Listing:  dirListing,
-				Path:     originalURLPath,
+				Path:     originalUrlPath,
 				BackLink: backLink,
 			}
 			err := listingTemplate.Execute(w, tplData)
