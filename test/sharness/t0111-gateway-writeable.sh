@@ -26,11 +26,13 @@ test_expect_success "HTTP gateway gives access to sample file" '
 
 test_expect_success "HTTP POST file gives Hash" '
   echo "$RANDOM" >infile &&
-  URL="http://localhost:$port/ipfs/" &&
+  URL="http://localhost:$port/ipfs" &&
   curl -svX POST --data-binary @infile "$URL" 2>curl_post.out &&
   grep "HTTP/1.1 201 Created" curl_post.out &&
   LOCATION=$(grep Location curl_post.out) &&
-  HASH=$(echo $LOCATION | cut -d":" -f2- |tr -d " \n\r")
+  echo "Header Location: $LOCATION" &&
+  HASH=$(echo $LOCATION | cut -d":" -f2- |tr -d " \n\r") &&
+  test $HASH != ""
 '
 
 test_expect_success "We can HTTP GET file just created" '
@@ -39,10 +41,10 @@ test_expect_success "We can HTTP GET file just created" '
   test_cmp infile outfile
 '
 
-test_expect_success "HTTP PUT empty directory" '
+test_expect_success "HTTP POST empty directory" '
   URL="http://localhost:$port/ipfs/$HASH_EMPTY_DIR/" &&
-  echo "PUT $URL" &&
-  curl -svX PUT "$URL" 2>curl_putEmpty.out &&
+  echo "POST $URL" &&
+  curl -svX POST "$URL" 2>curl_putEmpty.out &&
   cat curl_putEmpty.out &&
   grep "Ipfs-Hash: $HASH_EMPTY_DIR" curl_putEmpty.out &&
   grep "Location: /ipfs/$HASH_EMPTY_DIR" curl_putEmpty.out &&
@@ -55,11 +57,11 @@ test_expect_success "HTTP GET empty directory" '
   grep "Index of /ipfs/$HASH_EMPTY_DIR/" outfile
 '
 
-test_expect_success "HTTP PUT file to construct a hierarchy" '
+test_expect_success "HTTP POST file to construct a hierarchy" '
   echo "$RANDOM" >infile &&
   URL="http://localhost:$port/ipfs/$HASH_EMPTY_DIR/test.txt" &&
-  echo "PUT $URL" &&
-  curl -svX PUT --data-binary @infile "$URL" 2>curl_put.out &&
+  echo "POST $URL" &&
+  curl -svX POST --data-binary @infile "$URL" 2>curl_put.out &&
   grep "HTTP/1.1 201 Created" curl_put.out &&
   LOCATION=$(grep Location curl_put.out) &&
   HASH=$(expr "$LOCATION" : "< Location: /ipfs/\(.*\)/test.txt")
@@ -72,11 +74,11 @@ test_expect_success "We can HTTP GET file just created" '
   test_cmp infile outfile
 '
 
-test_expect_success "HTTP PUT file to append to existing hierarchy" '
+test_expect_success "HTTP POST file to append to existing hierarchy" '
   echo "$RANDOM" >infile2 &&
   URL="http://localhost:$port/ipfs/$HASH/test/test.txt" &&
-  echo "PUT $URL" &&
-  curl -svX PUT --data-binary @infile2 "$URL" 2>curl_putAgain.out &&
+  echo "POST $URL" &&
+  curl -svX POST --data-binary @infile2 "$URL" 2>curl_putAgain.out &&
   grep "HTTP/1.1 201 Created" curl_putAgain.out &&
   LOCATION=$(grep Location curl_putAgain.out) &&
   HASH=$(expr "$LOCATION" : "< Location: /ipfs/\(.*\)/test/test.txt")
