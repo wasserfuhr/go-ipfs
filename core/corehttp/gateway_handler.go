@@ -50,7 +50,7 @@ func (i *gatewayHandler) newDagFromReader(r io.Reader) (*dag.Node, error) {
 	return importer.BuildDagFromReader(
 		i.node.DAG,
 		chunk.DefaultSplitter(r),
-		importer.BasicPinnerCB(i.node.Pinning.GetManual()))
+		nil) // Not pining at all - see: https://github.com/ipfs/go-ipfs/pull/1917#issuecomment-161474809
 }
 
 // TODO(btc): break this apart into separate handlers using a more expressive muxer
@@ -63,10 +63,6 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		case "POST":
 			i.postHandler(ctx, w, r)
 			return
-		case "PUT":
-			// TODO(cryptix): where are the docs?
-			http.Error(w, "writableGateway: PUT method not meaningful on IPFS - use POST and see the docs", http.StatusMethodNotAllowed)
-			return
 		case "DELETE":
 			i.deleteHandler(ctx, w, r)
 			return
@@ -74,26 +70,18 @@ func (i *gatewayHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method == "GET" || r.Method == "HEAD" {
-		i.getOrHeadHandler(w, r)
+		i.getOrHeadHandler(ctx, w, r)
 		return
 	}
 
 	errmsg := "Method " + r.Method + " not allowed: "
-	if !i.config.Writable {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		errmsg = errmsg + "read only access"
-	} else {
-		w.WriteHeader(http.StatusBadRequest)
-		errmsg = errmsg + "bad request for " + r.URL.Path
-	}
+	w.WriteHeader(http.StatusMethodNotAllowed)
+	errmsg = errmsg + "bad request for " + r.URL.Path
 	fmt.Fprint(w, errmsg)
 	log.Error(errmsg) // TODO(cryptix): log errors until we have a better way to expose these (counter metrics maybe)
 }
 
-func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithCancel(i.node.Context())
-	defer cancel()
-
+func (i *gatewayHandler) getOrHeadHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 	urlPath := r.URL.Path
 
 	// If the gateway is behind a reverse proxy and mounted at a sub-path,
